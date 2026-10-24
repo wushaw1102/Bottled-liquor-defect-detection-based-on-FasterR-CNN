@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Training artefacts (weights are far too large for Git; see the Releases page)
+outputs/
+*.pth
+*.pt
+
+# The full image set (~260 MB) is not committed - only data/sample/images is.
+# Drop the original photos here to run training on the complete dataset.
+data/images/
+
+# Local archive of the pre-refactor figures, slides and old result images.
+# Kept on disk for the author, never published.
+_archive/
+
+# Regenerable figure output (the montage in docs/images is the published one).
+docs/images/gallery/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

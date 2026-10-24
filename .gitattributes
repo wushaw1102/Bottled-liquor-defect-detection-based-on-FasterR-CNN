@@ -1,0 +1,13 @@
+# Normalise line endings so the shell snippets in the README work everywhere.
+* text=auto eol=lf
+
+*.py   text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+*.txt  text eol=lf
+*.html text eol=lf
+
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.pth  binary

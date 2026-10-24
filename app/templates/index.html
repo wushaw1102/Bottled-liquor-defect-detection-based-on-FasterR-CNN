@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bottled Liquor Defect Detection · Faster R-CNN</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --panel: #ffffff;
+    --ink: #16181d;
+    --muted: #6b7280;
+    --line: #e3e7ee;
+    --brand: #1f6feb;
+    --brand-soft: #eaf1fe;
+    --ok: #0f9d58;
+    --warn: #b3261e;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+                 "PingFang SC", "Hiragino Sans GB", Roboto, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    background: #10141c;
+    color: #fff;
+    padding: 20px 28px;
+  }
+  .header-inner { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
+    background: linear-gradient(135deg, #1f6feb, #49a3ff);
+    display: grid; place-items: center; font-weight: 700; font-size: 18px;
+  }
+  h1 { font-size: 18px; font-weight: 650; margin: 0; letter-spacing: .1px; }
+  .sub { color: #9aa4b2; font-size: 12.5px; margin-top: 2px; }
+  .meta { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+    color: #cfd6e0; border-radius: 999px; padding: 4px 11px; font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill b { color: #fff; font-weight: 600; }
+  main { max-width: 1180px; margin: 22px auto 40px; padding: 0 20px; }
+  .grid { display: grid; grid-template-columns: 372px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 16px;
+  }
+  .card h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin: 0 0 12px; font-weight: 600;
+  }
+  .dropzone {
+    border: 1.5px dashed #c8d1dd; border-radius: 12px; background: #fbfcfe;
+    padding: 22px 16px; text-align: center; cursor: pointer; transition: .15s;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--brand); background: var(--brand-soft); }
+  .dropzone .big { font-size: 26px; line-height: 1; margin-bottom: 6px; }
+  .dropzone small { color: var(--muted); display: block; margin-top: 4px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row.between { justify-content: space-between; }
+  .control { margin-top: 14px; }
+  .control label { font-size: 12.5px; color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: var(--brand); }
+  .value { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .btn {
+    width: 100%; margin-top: 14px; padding: 10px 14px; border-radius: 10px;
+    border: 0; background: var(--brand); color: #fff; font-size: 14px;
+    font-weight: 600; cursor: pointer; transition: .15s;
+  }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .btn.secondary { background: #eef2f7; color: #26303d; }
+  .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .thumb {
+    position: relative; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--line); cursor: pointer; background: #eef1f6;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb:hover { outline: 2px solid var(--brand); outline-offset: -1px; }
+  .stage { position: relative; background: #0f1218; border-radius: 12px; overflow: hidden; min-height: 320px; display: grid; place-items: center; }
+  .stage img { width: 100%; display: block; }
+  .empty { color: #7b8594; font-size: 13px; text-align: center; padding: 60px 24px; }
+  .empty b { color: #cfd6e0; display: block; font-size: 15px; margin-bottom: 6px; }
+  .stats { display: flex; gap: 22px; margin-top: 12px; flex-wrap: wrap; }
+  .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .stat .v { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--muted); font-weight: 600; padding: 8px 6px; border-bottom: 1px solid var(--line);
+  }
+  td { padding: 9px 6px; border-bottom: 1px solid #f1f4f8; font-size: 13px; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 7px; }
+  .zh { font-weight: 600; }
+  .en { color: var(--muted); font-size: 11.5px; margin-left: 4px; }
+  .bar { height: 6px; border-radius: 999px; background: #eef1f6; overflow: hidden; width: 74px; display: inline-block; vertical-align: middle; }
+  .bar span { display: block; height: 100%; border-radius: 999px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .legend span { font-size: 11.5px; color: var(--muted); display: inline-flex; align-items: center; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .switch { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+  .switch input { accent-color: var(--brand); }
+  .spinner {
+    width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff; border-radius: 50%; display: inline-block;
+    animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="logo">FR</div>
+    <div>
+      <h1>Bottled Liquor Defect Detection</h1>
+      <div class="sub">Faster R-CNN · ResNet-50 FPN · 10 defect classes · PyTorch</div>
+    </div>
+    <div class="meta">
+      <span class="pill">checkpoint <b>{{ checkpoint }}</b></span>
+      <span class="pill">device <b>{{ device }}</b></span>
+      {% if mAP50 %}<span class="pill">mAP@0.5 <b>{{ mAP50 }}</b></span>
+      <span class="pill">mAP@[.5:.95] <b>{{ mAP }}</b></span>{% endif %}
+    </div>
+  </div>
+</header>
+
+<main>
+<div class="grid">
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card">
+    <h2>Input</h2>
+    <div class="dropzone" id="dropzone">
+      <div class="big">📷</div>
+      <div><b>Drop a bottle photo</b> or click to choose</div>
+      <small>JPG / PNG, up to 16 MB</small>
+    </div>
+    <input type="file" id="file" accept="image/*" hidden>
+
+    <div class="control">
+      <div class="row between">
+        <label for="threshold">Confidence threshold</label>
+        <span class="value" id="thresholdValue">{{ '%.2f'|format(threshold) }}</span>
+      </div>
+      <input type="range" id="threshold" min="0.05" max="0.95" step="0.05" value="{{ threshold }}">
+    </div>
+
+    <div class="control">
+      <label class="switch"><input type="checkbox" id="showGT" checked> overlay ground-truth boxes on samples</label>
+    </div>
+
+    <button class="btn secondary" id="rerun" style="display:none">Run again with this threshold</button>
+
+    <h2 style="margin-top:20px">Bundled samples</h2>
+    <div class="thumbs" id="thumbs">
+      {% for name in samples %}
+      <div class="thumb" data-name="{{ name }}" title="{{ name }}"><img src="/sample-image/{{ name }}" alt=""></div>
+      {% endfor %}
+    </div>
+    <div class="note">Samples come from the held-out test split and carry annotations, so you can compare the prediction with the label.</div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card">
+    <div class="row between">
+      <h2 style="margin-bottom:0">Result</h2>
+      <span class="pill" id="timing" style="display:none"></span>
+    </div>
+    <div class="stage" id="stage">
+      <div class="empty"><b>No image yet</b>Upload a photo or pick one of the samples.</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">detections</div><div class="v" id="count">–</div></div>
+      <div class="stat"><div class="k">classes hit</div><div class="v" id="classes">–</div></div>
+      <div class="stat"><div class="k">top score</div><div class="v" id="top">–</div></div>
+      <div class="stat"><div class="k">inference</div><div class="v" id="latency">–</div></div>
+    </div>
+
+    <table id="table" style="display:none">
+      <thead><tr><th>Defect</th><th>Score</th><th style="width:96px">Confidence</th><th class="num">Box (x1, y1, x2, y2)</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="legend" id="legend"></div>
+    <div class="note" id="hint"></div>
+  </section>
+</div>
+</main>
+
+<script>
+const CLASSES_ZH = {{ class_names_zh | tojson }};
+const PALETTE = ['#e63946','#1d3557','#2a9d8f','#e9c46a','#900c3f','#457b9d','#a8dadc','#ff6b6b','#264653','#f4a261'];
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file');
+const stage = document.getElementById('stage');
+const thresholdInput = document.getElementById('threshold');
+const thresholdValue = document.getElementById('thresholdValue');
+const rerun = document.getElementById('rerun');
+let lastSample = null;
+let lastFile = null;
+
+function colorFor(label) { return PALETTE[(label - 1 + PALETTE.length) % PALETTE.length]; }
+
+function showLoading(text) {
+  stage.innerHTML = `<div class="empty"><b>Running inference…</b>${text || ''}</div>`;
+}
+
+function render(data) {
+  stage.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = (document.getElementById('showGT').checked && data.image) ? data.image : (data.plain || data.image);
+  stage.appendChild(img);
+
+  const timing = document.getElementById('timing');
+  timing.style.display = 'inline-block';
+  timing.textContent = `${data.size[0]}×${data.size[1]} px`;
+
+  document.getElementById('count').textContent = data.detections.length;
+  document.getElementById('classes').textContent = Object.keys(data.summary.by_class).length;
+  document.getElementById('top').textContent = data.detections.length
+    ? data.detections[0].score.toFixed(2) : '–';
+  document.getElementById('latency').textContent = Math.round(data.inference_ms) + ' ms';
+
+  const table = document.getElementById('table');
+  const rows = document.getElementById('rows');
+  rows.innerHTML = '';
+  if (!data.detections.length) {
+    table.style.display = 'none';
+    document.getElementById('hint').textContent =
+      `Nothing above the ${data.threshold.toFixed(2)} threshold. Lower the threshold to see weaker candidates.`;
+    return;
+  }
+  table.style.display = 'table';
+  data.detections.slice(0, 12).forEach(d => {
+    const tr = document.createElement('tr');
+    const box = d.box.map(v => Math.round(v)).join(', ');
+    tr.innerHTML = `
+      <td><span class="swatch" style="background:${colorFor(d.label)}"></span>
+          <span class="zh">${d.label_zh}</span><span class="en">${d.label_name}</span></td>
+      <td class="num">${d.score.toFixed(3)}</td>
+      <td><span class="bar"><span style="width:${Math.round(d.score * 100)}%;background:${colorFor(d.label)}"></span></span></td>
+      <td class="num">${box}</td>`;
+    rows.appendChild(tr);
+  });
+  document.getElementById('hint').textContent = data.ground_truth.length
+    ? `Ground truth has ${data.ground_truth.length} instance(s); white boxes show the labels.`
+    : '';
+}
+
+async function detect(payload) {
+  const form = new FormData();
+  form.append('threshold', thresholdInput.value);
+  if (payload.sample) { form.append('sample', payload.sample); lastSample = payload.sample; lastFile = null; }
+  if (payload.file) { form.append('image', payload.file); lastFile = payload.file; lastSample = null; }
+  showLoading('');
+  try {
+    const response = await fetch('/api/detect', { method: 'POST', body: form });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'request failed');
+    render(data);
+    rerun.style.display = 'block';
+  } catch (error) {
+    stage.innerHTML = `<div class="empty"><b>Something went wrong</b>${error.message}</div>`;
+  }
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; detect({ file: e.dataTransfer.files[0] }); }
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) detect({ file: fileInput.files[0] }); });
+
+document.querySelectorAll('.thumb').forEach(el => {
+  el.addEventListener('click', () => detect({ sample: el.dataset.name }));
+});
+
+thresholdInput.addEventListener('input', () => {
+  thresholdValue.textContent = parseFloat(thresholdInput.value).toFixed(2);
+});
+thresholdInput.addEventListener('change', () => {
+  if (lastSample) detect({ sample: lastSample });
+  else if (lastFile) detect({ file: lastFile });
+});
+document.getElementById('showGT').addEventListener('change', () => {
+  if (lastSample) detect({ sample: lastSample });
+});
+
+// Legend of all classes, in dataset order.
+const legend = document.getElementById('legend');
+CLASSES_ZH.forEach((zh, index) => {
+  const span = document.createElement('span');
+  span.innerHTML = `<span class="swatch" style="background:${PALETTE[index]}"></span>${zh}`;
+  legend.appendChild(span);
+});
+</script>
+</body>
+</html>

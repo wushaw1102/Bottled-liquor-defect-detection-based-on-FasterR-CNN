@@ -1,0 +1,13 @@
+# PyTorch / torchvision
+# Install the CUDA build matching your driver first, e.g.
+#   pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
+# The versions below are the ones this repository was verified with.
+torch>=2.0
+torchvision>=0.15
+
+numpy>=1.24,<2.0
+pillow>=9.5
+matplotlib>=3.7
+
+# web demo
+flask>=2.2
