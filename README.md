@@ -114,12 +114,13 @@ recall problem, not a localisation problem - see the per-class table.
 
 Read the table before trusting the aggregate number:
 
-* **Three classes score exactly 0.000 with hundreds of ground-truth boxes**
-  (`cap_cracked` 150, `label_wrinkled` 18, `label_bubble` 38). The checkpoint
-  never emits a single box for them at any confidence - the cross-entropy head
-  collapsed onto the visually dominant classes. COCO counts these as AP = 0;
-  silently skipping them would have reported mAP@0.50 as **0.399** instead of
-  the true 0.319.
+* **Three classes score exactly 0.000** - `cap_cracked` (150 ground-truth boxes)
+  and `label_bubble` (38) never receive a single detection across all 452 images
+  at any confidence, and `label_wrinkled` (18) gets exactly one box that never
+  matches. The classification head collapsed onto the visually dominant classes.
+  COCO scores these as AP = 0; a `nanmean` over classes - the shortcut many
+  evaluators take - would have reported **0.399**, and discarding every
+  zero-scoring class would have reported 0.456. The 0.319 above includes them.
 * The classes that work (`code_defect` 0.807, `cap_swirl` 0.777, `label_skew`
   0.666) are the ones with high contrast against the bottle.
 * Small, low-contrast defects at 658 × 492 px are near the resolution limit of
