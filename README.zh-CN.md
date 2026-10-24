@@ -68,6 +68,8 @@ python -m src.evaluate --checkpoint saved_models/model.pth \
     --output-dir outputs/eval_checkpoint --save-predictions
 ```
 
+该权重是 Release 附件（见第 4 步），下面的数字由它实测得到。
+
 ### 汇总指标
 
 | 指标 | 数值 | 含义 |
@@ -181,7 +183,21 @@ python scripts/prepare_dataset.py \
 > 换成 `--image-dir data/sample/images --annotation-file data/sample/annotations.json`，
 > 先跑通全流程再上全量数据。
 
-### 4. 单张推理
+### 4. 下载已发布权重
+
+165 MB 的权重以 **Release 附件**形式发布——它超过了 GitHub 单文件 100 MB 的限制，
+因此不在 Git 历史里：
+
+```bash
+mkdir -p saved_models
+curl -L -o saved_models/model.pth \
+  https://github.com/wushaw1102/Bottled-liquor-defect-detection-based-on-FasterR-CNN/releases/download/v1.0.0/model.pth
+```
+
+也可以直接在浏览器里从 [v1.0.0 Release](https://github.com/wushaw1102/Bottled-liquor-defect-detection-based-on-FasterR-CNN/releases/tag/v1.0.0) 下载。
+自己训练（第 8 步）同样可以，把 `--checkpoint` 指向自己的权重即可。
+
+### 5. 单张推理
 
 ```bash
 python -m src.predict --image data/sample/images/img_0026692.jpg --threshold 0.4
@@ -196,7 +212,7 @@ wrote outputs/predictions/detections.csv
 带框的图片会写到 `outputs/predictions/`。加 `--chinese` 用中文标签，用 `--input-dir`
 可以批量跑一个文件夹。
 
-### 5. 复现基准结果
+### 6. 复现基准结果
 
 ```bash
 python -m src.evaluate --checkpoint saved_models/model.pth \
@@ -214,7 +230,7 @@ P / R / F1 @ 0.5: 0.6296 / 0.1548 / 0.2485
 
 **不需要 `pycocotools`**：AP 由 `src/metrics.py` 计算，采用与 COCO 一致的 101 点插值。
 
-### 6. 重新生成本文所有图表
+### 7. 重新生成本文所有图表
 
 ```bash
 python -m src.visualize \
@@ -223,7 +239,7 @@ python -m src.visualize \
     --output-dir docs/images --gallery-count 6 --montage
 ```
 
-### 7. 从零训练
+### 8. 从零训练
 
 ```bash
 python -m src.train --epochs 10 --batch-size 4 --lr 5e-4 --output-dir outputs/run1
@@ -239,13 +255,13 @@ python -m src.train --epochs 10 --batch-size 2 --min-size 600 --workers 4
 `best_model.pth`（验证损失最低）、`last_model.pth`、`history.json` 和 `run_config.json`
 写入 `--output-dir`。
 
-### 8. 评估自己的权重
+### 9. 评估自己的权重
 
 ```bash
 python -m src.evaluate --checkpoint outputs/run1/best_model.pth --output-dir outputs/eval_run1
 ```
 
-### 9. 启动演示
+### 10. 启动演示
 
 ```bash
 python app/app.py --checkpoint outputs/run1/best_model.pth --port 5000
@@ -298,7 +314,7 @@ python app/app.py --checkpoint outputs/run1/best_model.pth --port 5000
 │   ├── sample/                 60 张样例 + 对应标注
 │   └── README.md               数据格式与目录说明
 ├── docs/images/                本文所有图表（均由脚本生成）
-├── saved_models/model.pth      发布的权重（165 MB）
+├── saved_models/model.pth      发布的权重（165 MB，从 Releases 下载）
 ├── legacy/original_scripts/    重构前的原始代码，留档备查
 └── outputs/                    训练记录、指标、预测结果（已 gitignore）
 ```

@@ -76,6 +76,8 @@ python -m src.evaluate --checkpoint saved_models/model.pth \
     --output-dir outputs/eval_checkpoint --save-predictions
 ```
 
+The checkpoint is a release asset (see step 4); the numbers below come from it.
+
 ### Aggregate
 
 | Metric | Value | Meaning |
@@ -198,7 +200,21 @@ This prints the per-class histogram and reports missing images. Expect
 > and `--annotation-file data/sample/annotations.json` so you can rehearse the
 > full workflow first.
 
-### 4. Run inference on a photo
+### 4. Fetch the released checkpoint
+
+The 165 MB checkpoint is published as a **release asset** - it is larger than
+GitHub's 100 MB per-file limit, so it is not part of the Git history:
+
+```bash
+mkdir -p saved_models
+curl -L -o saved_models/model.pth \
+  https://github.com/wushaw1102/Bottled-liquor-defect-detection-based-on-FasterR-CNN/releases/download/v1.0.0/model.pth
+```
+
+Or grab it in the browser from the [v1.0.0 release](https://github.com/wushaw1102/Bottled-liquor-defect-detection-based-on-FasterR-CNN/releases/tag/v1.0.0).
+Training your own (step 8) works just as well - point `--checkpoint` at it.
+
+### 5. Run inference on a photo
 
 ```bash
 python -m src.predict --image data/sample/images/img_0026692.jpg --threshold 0.4
@@ -213,7 +229,7 @@ wrote outputs/predictions/detections.csv
 Annotated images land in `outputs/predictions/`. Add `--chinese` for Chinese
 labels, or `--input-dir` to sweep a folder.
 
-### 5. Reproduce the benchmark
+### 6. Reproduce the benchmark
 
 ```bash
 python -m src.evaluate --checkpoint saved_models/model.pth \
@@ -232,7 +248,7 @@ P / R / F1 @ 0.5: 0.6296 / 0.1548 / 0.2485
 The script needs no `pycocotools` - AP is computed in `src/metrics.py` with the
 same 101-point interpolation COCO uses.
 
-### 6. Regenerate every figure in this README
+### 7. Regenerate every figure in this README
 
 ```bash
 python -m src.visualize \
@@ -241,7 +257,7 @@ python -m src.visualize \
     --output-dir docs/images --gallery-count 6 --montage
 ```
 
-### 7. Train from scratch
+### 8. Train from scratch
 
 ```bash
 python -m src.train --epochs 10 --batch-size 4 --lr 5e-4 --output-dir outputs/run1
@@ -257,13 +273,13 @@ which measures **1.1 s/step ≈ 26 min/epoch ≈ 4.5 h for 10 epochs** on an
 RTX 3050 Laptop. Training writes `best_model.pth` (lowest validation loss),
 `last_model.pth`, `history.json` and `run_config.json` into `--output-dir`.
 
-### 8. Evaluate your own checkpoint
+### 9. Evaluate your own checkpoint
 
 ```bash
 python -m src.evaluate --checkpoint outputs/run1/best_model.pth --output-dir outputs/eval_run1
 ```
 
-### 9. Launch the demo
+### 10. Launch the demo
 
 ```bash
 python app/app.py --checkpoint outputs/run1/best_model.pth --port 5000
@@ -318,7 +334,7 @@ useful for a laptop or a container without a GPU.
 │   ├── sample/                 60 photos + subset annotations
 │   └── README.md               dataset layout and schema
 ├── docs/images/                figures used in this README (all generated)
-├── saved_models/model.pth      released checkpoint (165 MB, Git LFS-free download)
+├── saved_models/model.pth      released checkpoint (165 MB, downloaded from Releases)
 ├── legacy/original_scripts/    pre-refactor code, kept for provenance
 └── outputs/                    training runs, metrics, predictions (git-ignored)
 ```
